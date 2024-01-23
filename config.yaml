@@ -1,0 +1,40 @@
+# database REQUIRED
+pghost: localhost:5432
+pguser: postgres
+pgpassword: SECURE_PASSWORD
+pgdatabase: postgres
+
+# database optional
+pgsslmode: prefer
+pgconnattempts: 5
+pgsslmode: prefer
+skipmigrations: false
+
+# server
+staticdir: static
+staticcachemaxage: 3600
+rootredirect: ""
+logformat: json
+autotlsenabled: "false"
+autotlshost: localhost
+autotlsstaging: "true"
+valideventnames: []
+
+# privacy
+ipextractor: direct
+geoipfile: geoip.mmdb
+prunedays: 0
+prunecheckhours: 24
+sessiontimeoutmin: 30
+
+# tuning
+queuesize: 640000
+batchmaxmsec: 500
+batchmaxsize: 6400
+requestratelimit: 10
+bodymaxsize: 2048
+
+# admin
+adminlisten: :8081
+disablehostmetrics: false
+debug: false

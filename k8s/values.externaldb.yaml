@@ -1,0 +1,21 @@
+picolytics:
+  privacy:
+    ipExtractor: xff
+  admin:
+    debug: false
+  postgres:
+    host: db.123.supabase.co
+    database: postgres
+    userExistingSecret:
+      name: picolytics-db
+      key: username
+    passwordExistingSecret:
+      name: picolytics-db
+      key: password
+
+postgresql:
+  enabled: false
+victoria-metrics-single:
+  enabled: false
+grafana:
+  enabled: false

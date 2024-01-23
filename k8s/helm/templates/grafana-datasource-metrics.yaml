@@ -1,0 +1,27 @@
+{{- if (and .Values.grafana.enabled .Values.grafana.sidecar.datasources.enabled) }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ template "picolytics.fullname" . }}-grafana-datasource-metrics
+{{- if .Values.grafana.sidecar.datasources.annotations }}
+  annotations:
+    {{- toYaml .Values.grafana.sidecar.datasources.annotations | nindent 4 }}
+{{- end }}
+  labels:
+    app: {{ template "picolytics.fullname" $ }}-grafana
+    grafana_datasource: ""
+data:
+  datasource.yaml: |-
+    apiVersion: 1
+{{- if .Values.grafana.deleteDatasources }}
+    deleteDatasources:
+{{ tpl (toYaml .Values.grafana.deleteDatasources | indent 6) . }}
+{{- end }}
+    datasources:
+    - name: PicolyticsMetrics
+      uid: PicolyticsMetrics
+      type: prometheus
+      access: proxy
+      url: 'http://picolytics-victoria-metrics-single-server:8428'
+      isDefault: false
+{{- end }}

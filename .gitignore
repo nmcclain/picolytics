@@ -1,0 +1,10 @@
+tmp
+env
+.env
+src/*
+cmd/picolytics/picolytics
+.DS_Store
+geoip.mmdb
+etc/coverage.html
+etc/coverage.out
+dist

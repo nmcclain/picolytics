@@ -1,0 +1,15 @@
+version: "2"
+sql:
+  - engine: "postgresql"
+    queries: "query.sql"
+    schema: "migrations"
+    gen:
+      go:
+        package: "db"
+        out: "db"
+        sql_package: "pgx/v5"
+        overrides:
+          - column: "events.meta"
+            go_type:
+              import: "github.com/nmcclain/picolytics/picolytics/dbtypes"
+              type: "JSONB"

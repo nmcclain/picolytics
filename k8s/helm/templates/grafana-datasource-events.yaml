@@ -1,0 +1,41 @@
+{{- if (and .Values.grafana.enabled .Values.grafana.sidecar.datasources.enabled) }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ template "picolytics.fullname" . }}-grafana-datasource-events
+{{- if .Values.grafana.sidecar.datasources.annotations }}
+  annotations:
+    {{- toYaml .Values.grafana.sidecar.datasources.annotations | nindent 4 }}
+{{- end }}
+  labels:
+    app: {{ template "picolytics.fullname" $ }}-grafana
+    grafana_datasource: ""
+data:
+  datasource.yaml: |-
+    apiVersion: 1
+{{- if .Values.grafana.deleteDatasources }}
+    deleteDatasources:
+{{ tpl (toYaml .Values.grafana.deleteDatasources | indent 6) . }}
+{{- end }}
+    datasources:
+    - name: PicolyticsEvents
+      uid: PicolyticsEvents
+      type: postgres
+      access: proxy
+      url: {{ .Values.picolytics.postgres.host }}:{{ .Values.picolytics.postgres.port }}
+      database: {{ .Values.picolytics.postgres.database | quote }}
+      user: $PICOLYTICS_DB_USER
+      secureJsonData:
+        password: $PICOLYTICS_DB_PASSWORD
+      isDefault: true
+      jsonData:
+        sslmode: disable
+        postgresVersion: 1500
+        database: {{ .Values.picolytics.postgres.database | quote }}
+        timescaledb: false
+        readOnly: false
+        connMaxLifetime: 14400
+        maxIdleConns: 100
+        maxIdleConnsAuto: true
+        maxOpenConns: 100
+{{- end }}

@@ -1,0 +1,14 @@
+picolytics:
+  privacy:
+    ipExtractor: xff
+  admin:
+    debug: false
+  postgres:
+    host: postgres
+    database: picolytics
+    userExistingSecret:
+      name: picolytics-db
+      key: username
+    passwordExistingSecret:
+      name: picolytics-db
+      key: password

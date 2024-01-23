@@ -1,0 +1,23 @@
+apiVersion: 1
+
+datasources:
+  - name: PicolyticsEvents
+    uid: PicolyticsEvents
+    type: postgres
+    access: proxy
+    url: postgres:5432
+    database: picolytics
+    user: grafana
+    secureJsonData:
+      password: ${POSTGRES_GRAFANA_PASSWORD}
+    isDefault: true
+    jsonData:
+      sslmode: disable
+      postgresVersion: 1500
+      database: picolytics
+      timescaledb: false
+      readOnly: false
+      connMaxLifetime: 14400
+      maxIdleConns: 100
+      maxIdleConnsAuto: true
+      maxOpenConns: 100

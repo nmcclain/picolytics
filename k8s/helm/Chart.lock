@@ -1,0 +1,12 @@
+dependencies:
+- name: victoria-metrics-single
+  repository: https://victoriametrics.github.io/helm-charts/
+  version: 0.9.12
+- name: grafana
+  repository: https://grafana.github.io/helm-charts
+  version: 7.2.3
+- name: postgresql
+  repository: oci://registry-1.docker.io/bitnamicharts
+  version: 13.2.21
+digest: sha256:c8112edda02f21e6770a94939b1705fa07064994d97f78ec148232dac2045c41
+generated: "2023-11-27T22:47:51.659483-07:00"

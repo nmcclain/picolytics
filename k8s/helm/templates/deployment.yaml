@@ -1,0 +1,146 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "picolytics.fullname" . }}
+  labels:
+    {{- include "picolytics.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.picolytics.autoscaling.enabled }}
+  replicas: {{ .Values.picolytics.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "picolytics.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.picolytics.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "picolytics.labels" . | nindent 8 }}
+	{{- with .Values.picolytics.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.picolytics.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "picolytics.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.picolytics.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.picolytics.securityContext | nindent 12 }}
+          image: "{{ .Values.picolytics.image.repository }}:{{ .Values.picolytics.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.picolytics.image.pullPolicy }}
+          env:
+            - name: PGHOST
+              value: {{ .Values.picolytics.postgres.host | quote }}
+            - name: PGPORT
+              value: {{ .Values.picolytics.postgres.port | quote }}
+            - name: PGDATABASE
+              value: {{ .Values.picolytics.postgres.database | quote }}
+            {{- if .Values.picolytics.postgres.user }}
+            - name: PGUSER
+              value: {{ .Values.picolytics.postgres.user | quote }}
+            {{- else }}
+            - name: PGUSER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.picolytics.postgres.userExistingSecret.name }}
+                  key: {{ .Values.picolytics.postgres.userExistingSecret.key }}
+            {{- end }}
+            {{- if .Values.picolytics.postgres.password }}
+            - name: PGPASSWORD
+              value: {{ .Values.picolytics.postgres.password | quote }}
+            {{- else }}
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.picolytics.postgres.passwordExistingSecret.name }}
+                  key: {{ .Values.picolytics.postgres.passwordExistingSecret.key }}
+            {{- end }}
+            - name: PGSSLMODE
+              value: {{ .Values.picolytics.postgres.pgSslMode | quote }}
+            - name: PGCONNATTEMPTS
+              value: {{ .Values.picolytics.postgres.pgConnAttempts | quote }}
+            - name: SKIP_MIGRATIONS
+              value: {{ .Values.picolytics.postgres.skipMigrations | quote }}
+            - name: LISTEN_ADDR
+              value: ":{{ .Values.picolytics.service.port }}"
+            - name: STATIC_DIR
+              value: {{ .Values.picolytics.server.staticDir | quote }}
+            - name: ROOT_REDIRECT
+              value: {{ .Values.picolytics.server.rootRedirect | quote }}
+            - name: LOG_FORMAT
+              value: {{ .Values.picolytics.server.logFormat | quote }}
+            - name: IP_EXTRACTOR
+              value: {{ .Values.picolytics.privacy.ipExtractor | quote }}
+            - name: GEO_IP_FILE
+              value: {{ .Values.picolytics.privacy.geoIpFile | quote }}
+            - name: PRUNE_DAYS
+              value: {{ .Values.picolytics.privacy.pruneDays | quote }}
+            - name: PRUNE_CHECK_HOURS
+              value: {{ .Values.picolytics.privacy.pruneCheckHours | quote }}
+            - name: SESSION_TIMEOUT_MIN
+              value: {{ .Values.picolytics.privacy.sessionTimeoutMin | quote }}
+            - name: QUEUE_SIZE
+              value: {{ .Values.picolytics.tuning.queueSize | quote }}
+            - name: BATCH_MAX_SIZE
+              value: {{ .Values.picolytics.tuning.batchMaxSize | quote }}
+            - name: BATCH_MAX_MSEC
+              value: {{ .Values.picolytics.tuning.batchMaxMsec | quote }}
+            - name: REQUEST_RATE_LIMIT
+              value: {{ .Values.picolytics.tuning.requestRateLimit | quote }}
+            - name: BODY_MAX_SIZE
+              value: {{ .Values.picolytics.tuning.bodyMaxSize | quote }}
+            - name: STATIC_CACHE_MAX_AGE
+              value: {{ .Values.picolytics.tuning.staticCacheMaxAge | quote }}
+            - name: VALID_EVENT_NAMES
+              value: {{ .Values.picolytics.tuning.validEventNames | quote }}
+            - name: ADMIN_LISTEN
+              value: ":{{ .Values.picolytics.admin.adminPort }}"
+            - name: DISABLE_HOST_METRICS
+              value: {{ .Values.picolytics.admin.disableHostMetrics | quote }}
+            - name: DEBUG
+              value: {{ .Values.picolytics.admin.debug | quote }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.picolytics.service.port }}
+              protocol: TCP
+            - name: admin
+              containerPort: {{ .Values.picolytics.admin.adminPort }}
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: admin
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: admin
+          resources:
+            {{- toYaml .Values.picolytics.resources | nindent 12 }}
+          {{- with .Values.picolytics.volumeMounts }}
+          volumeMounts:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      {{- with .Values.picolytics.volumes }}
+      volumes:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.picolytics.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.picolytics.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.picolytics.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

@@ -1,0 +1,98 @@
+version: "3.3"
+
+services:
+  picolytics:
+    container_name: picolytics
+    restart: always
+    image: ghcr.io/nmcclain/picolytics:latest
+    depends_on:
+      - postgres
+    ports:
+      - 8080:8080
+    environment:
+      - PGHOST=postgres
+      - PGPORT=5432
+      - PGDATABASE=picolytics
+      - PGUSER=${POSTGRES_PICOLYTICS_USER}
+      - PGPASSWORD=${POSTGRES_PICOLYTICS_PASSWORD}
+      - SKIP_MIGRATIONS
+      - LISTEN_ADDR
+      - ADMIN_LISTEN
+      - AUTOTLS_ENABLED
+      - AUTOTLS_HOST
+      - AUTOTLS_STAGING
+      - IP_EXTRACTOR
+      - QUEUE_SIZE
+      - BATCH_MAX_SIZE
+      - BATCH_MAX_MSEC
+      - REQUEST_RATE_LIMIT
+      - BODY_MAX_SIZE
+      - STATIC_CACHE_MAX_AGE
+      - DISABLE_HOST_METRICS
+      - LOG_FORMAT
+      - PRUNE_DAYS
+      - PRUNE_CHECK_HOURS
+      - VALID_EVENT_NAMES
+      - DEBUG
+
+  postgres:
+    container_name: postgres
+    image: postgres:15-alpine
+    ports:
+      - 5432:5432
+    volumes:
+      - postgres:/var/lib/postgresql/data
+      - ./postgres-initdb.d:/docker-entrypoint-initdb.d
+    environment:
+      LANG: en_US.utf8
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_PICOLYTICS_USER: ${POSTGRES_PICOLYTICS_USER}
+      POSTGRES_PICOLYTICS_PASSWORD: ${POSTGRES_PICOLYTICS_PASSWORD}
+      POSTGRES_GRAFANA_USER: ${POSTGRES_GRAFANA_USER}
+      POSTGRES_GRAFANA_PASSWORD: ${POSTGRES_GRAFANA_PASSWORD}
+    restart: always
+
+  victoriametrics:
+    container_name: victoriametrics
+    image: victoriametrics/victoria-metrics:latest
+    ports:
+      - 8428:8428
+    volumes:
+      - vmdata:/storage
+      - ./victoriametrics_config:/victoria
+    command:
+      - "--storageDataPath=/storage"
+      - "--httpListenAddr=:8428"
+      - "--promscrape.config=/victoria/prometheus-scrape-config.yaml"
+    restart: always
+
+  grafana:
+    container_name: grafana
+    restart: always
+    image: grafana/grafana-oss:main
+    depends_on:
+      - postgres
+      - victoriametrics
+    ports:
+      - 3000:3000
+    environment:
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+      GF_AUTH_ANONYMOUS_ENABLED: true
+      GF_AUTH_BASIC_ENABLED: false
+      GF_ENABLE_GZIP: true
+      GF_INSTALL_PLUGINS: marcusolsson-static-datasource,marcusolsson-json-datasource
+      POSTGRES_GRAFANA_PASSWORD: ${POSTGRES_GRAFANA_PASSWORD}
+    volumes:
+      - grafana_storage:/var/lib/grafana
+      - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
+      - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
+      - ../k8s/helm/dashboards:/var/lib/grafana/dashboards
+
+volumes:
+  postgres:
+    driver: local
+  vmdata:
+    driver: local
+  grafana_storage:
+    driver: local

@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "picolytics.fullname" . }}
+  labels:
+    {{- include "picolytics.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.picolytics.service.type }}
+  ports:
+    - port: {{ .Values.picolytics.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "picolytics.selectorLabels" . | nindent 4 }}
