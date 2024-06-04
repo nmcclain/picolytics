@@ -56,8 +56,6 @@ type Config struct {
 }
 
 func SetConfigDefaults() {
-	viper.SetDefault("configName", "config")
-	viper.SetDefault("configPath", ".")
 	viper.SetDefault("pgPort", "5432")
 	viper.SetDefault("pgSslMode", "prefer")
 	viper.SetDefault("pgConnAttempts", 5)
@@ -77,12 +75,49 @@ func SetConfigDefaults() {
 	viper.SetDefault("requestRateLimit", 10)
 	viper.SetDefault("bodyMaxSize", int64(2*1024)) // 2KB
 	viper.SetDefault("staticCacheMaxAge", 3600)    // 1 hour
-	viper.SetDefault("disableHostMetrics", false)
-	viper.SetDefault("logFormat", "text")
+	viper.SetDefault("disableHostMetrics", true)
+	viper.SetDefault("logFormat", "json")
 	viper.SetDefault("pruneDays", 0)
 	viper.SetDefault("pruneCheckHours", 24)
 	viper.SetDefault("validEventNames", []string{"load", "visible", "hidden", "hashchange", "ping"})
 	viper.SetDefault("debug", false)
+}
+
+func BindEnvVars() {
+	viper.BindEnv("configName", "CONFIG_NAME")
+	viper.BindEnv("configPath", "CONFIG_PATH")
+	viper.BindEnv("pgConnString", "PGCONNSTRING") // required unless (and overrides) PGHOST, PGDATABASE, PGUSER, and PGPASSWORD: no default
+	viper.BindEnv("pgHost", "PGHOST")             // required unless PGCONNSTRING set: no default
+	viper.BindEnv("pgUser", "PGUSER")             // required unless PGCONNSTRING set: no default
+	viper.BindEnv("pgPassword", "PGPASSWORD")     // required unless PGCONNSTRING set: no default
+	viper.BindEnv("pgDatabase", "PGDATABASE")     // required unless PGCONNSTRING set: no default
+	viper.BindEnv("pgPort", "PGPORT")
+	viper.BindEnv("pgSslMode", "PGSSLMODE")
+	viper.BindEnv("pgConnAttempts", "PGCONNATTEMPTS")
+	viper.BindEnv("skipMigrations", "SKIP_MIGRATIONS")
+	viper.BindEnv("listenAddr", "LISTEN_ADDR")
+	viper.BindEnv("autotlsEnabled", "AUTOTLS_ENABLED")
+	viper.BindEnv("autotlsHost", "AUTOTLS_HOST") // required if enableAcme is true
+	viper.BindEnv("autotlsStaging", "AUTOTLS_STAGING")
+	viper.BindEnv("adminListen", "ADMIN_LISTEN")
+	viper.BindEnv("staticDir", "STATIC_DIR")
+	viper.BindEnv("rootRedirect", "ROOT_REDIRECT")
+	viper.BindEnv("ipExtractor", "IP_EXTRACTOR")
+	viper.BindEnv("trustedProxies", "TRUSTED_PROXIES") // comma separated list
+	viper.BindEnv("geoIpFile", "GEO_IP_FILE")
+	viper.BindEnv("sessionTimeoutMin", "SESSION_TIMEOUT_MIN")
+	viper.BindEnv("queueSize", "QUEUE_SIZE")
+	viper.BindEnv("batchMaxSize", "BATCH_MAX_SIZE")
+	viper.BindEnv("batchMaxMsec", "BATCH_MAX_MSEC")
+	viper.BindEnv("requestRateLimit", "REQUEST_RATE_LIMIT") // Limit is represented as number of events per second.
+	viper.BindEnv("bodyMaxSize", "BODY_MAX_SIZE")
+	viper.BindEnv("staticCacheMaxAge", "STATIC_CACHE_MAX_AGE") // seconds
+	viper.BindEnv("disableHostMetrics", "DISABLE_HOST_METRICS")
+	viper.BindEnv("logFormat", "LOG_FORMAT")
+	viper.BindEnv("pruneDays", "PRUNE_DAYS")
+	viper.BindEnv("pruneCheckHours", "PRUNE_CHECK_HOURS")
+	viper.BindEnv("validEventNames", "VALID_EVENT_NAMES") // comma separated list
+	viper.BindEnv("debug", "DEBUG")
 }
 
 func setupLogger(debug bool, logHandler slog.Handler) (*slog.Logger, error) {
@@ -113,7 +148,7 @@ func validateConfig(config *Config) error {
 
 	if len(config.PgConnString) < 1 {
 		if len(config.PgHost) == 0 || len(config.PgDatabase) == 0 || len(config.PgUser) == 0 || len(config.PgPassword) == 0 {
-			return fmt.Errorf("PGCONNSTRING or PGHOST, PGDATABASE, PGUSER, and PGPASSWORD must all be set")
+			return fmt.Errorf("PGCONNSTRING must be set")
 		}
 		config.PgConnString = fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=%s", config.PgUser, config.PgPassword, config.PgHost, config.PgPort, config.PgDatabase, config.PgSslMode)
 	} else {

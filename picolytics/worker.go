@@ -76,6 +76,7 @@ func (w *Worker) processQueuedEvents() {
 }
 
 func (w *Worker) processBatch(toProcess *[]PicolyticsEvent, reason string) error {
+	w.o11y.Logger.Debug("saving queue events to db", "events", len(*toProcess), "reason", reason)
 	if err := w.saveEvents(*toProcess); err != nil {
 		return err
 	}

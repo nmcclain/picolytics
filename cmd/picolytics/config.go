@@ -17,54 +17,34 @@ var staticFilesSource embed.FS
 // build-time injected variables
 var InjectedGitCommit, InjectedGitBranch, InjectedAppVersion string
 
+// getConfig retrieves the configuration settings for the application.
+// Order of priority: defaults < config file < environment variables
+//
+// The configuration file can be specified in two ways:
+// 1. Using the `-c` or `--config` command-line flag.
+// 2. Using the `CONFIG_PATH` and `CONFIG_NAME` environment variables.
+//
+// If the `--write-default-config` flag is set to true, it writes the default
+// configuration to a file and exits.
+//
+// Returns:
+// - A pointer to the config struct populated with the configuration settings.
+// - A slice of warnings encountered during the configuration process.
+// - An error if there was a problem reading or parsing the configuration.
 func getConfig() (*picolytics.Config, []string, error) {
 	var config picolytics.Config
 	picolytics.SetConfigDefaults()
 
+	// TK: figure out logger situation.
 	viper.AutomaticEnv() // Automatically read from environment variables
+	picolytics.BindEnvVars()
 
-	viper.BindEnv("configName", "CONFIG_NAME")
-	viper.BindEnv("configPath", "CONFIG_PATH")
-
-	viper.BindEnv("pgConnString", "PGCONNSTRING") // required unless (and overrides) PGHOST, PGDATABASE, PGUSER, and PGPASSWORD: no default
-	viper.BindEnv("pgHost", "PGHOST")             // required unless PGCONNSTRING set: no default
-	viper.BindEnv("pgUser", "PGUSER")             // required unless PGCONNSTRING set: no default
-	viper.BindEnv("pgPassword", "PGPASSWORD")     // required unless PGCONNSTRING set: no default
-	viper.BindEnv("pgDatabase", "PGDATABASE")     // required unless PGCONNSTRING set: no default
-	viper.BindEnv("pgPort", "PGPORT")
-	viper.BindEnv("pgSslMode", "PGSSLMODE")
-	viper.BindEnv("pgConnAttempts", "PGCONNATTEMPTS")
-	viper.BindEnv("skipMigrations", "SKIP_MIGRATIONS")
-	viper.BindEnv("listenAddr", "LISTEN_ADDR")
-	viper.BindEnv("autotlsEnabled", "AUTOTLS_ENABLED")
-	viper.BindEnv("autotlsHost", "AUTOTLS_HOST") // required if enableAcme is true
-	viper.BindEnv("autotlsStaging", "AUTOTLS_STAGING")
-	viper.BindEnv("adminListen", "ADMIN_LISTEN")
-	viper.BindEnv("staticDir", "STATIC_DIR")
-	viper.BindEnv("rootRedirect", "ROOT_REDIRECT")
-	viper.BindEnv("ipExtractor", "IP_EXTRACTOR")
-	viper.BindEnv("trustedProxies", "TRUSTED_PROXIES") // comma separated list
-	viper.BindEnv("geoIpFile", "GEO_IP_FILE")
-	viper.BindEnv("sessionTimeoutMin", "SESSION_TIMEOUT_MIN")
-	viper.BindEnv("queueSize", "QUEUE_SIZE")
-	viper.BindEnv("batchMaxSize", "BATCH_MAX_SIZE")
-	viper.BindEnv("batchMaxMsec", "BATCH_MAX_MSEC")
-	viper.BindEnv("requestRateLimit", "REQUEST_RATE_LIMIT") // Limit is represented as number of events per second.
-	viper.BindEnv("bodyMaxSize", "BODY_MAX_SIZE")
-	viper.BindEnv("staticCacheMaxAge", "STATIC_CACHE_MAX_AGE") // seconds
-	viper.BindEnv("disableHostMetrics", "DISABLE_HOST_METRICS")
-	viper.BindEnv("logFormat", "LOG_FORMAT")
-	viper.BindEnv("pruneDays", "PRUNE_DAYS")
-	viper.BindEnv("pruneCheckHours", "PRUNE_CHECK_HOURS")
-	viper.BindEnv("validEventNames", "VALID_EVENT_NAMES") // comma separated list
-	viper.BindEnv("debug", "DEBUG")
-
-	viper.SetConfigType("yaml")
-	viper.SetConfigName(viper.GetString("configName")) // configName is set as a default or through BIND_ENV
-	viper.AddConfigPath(viper.GetString("configPath")) // configPath is set as a default or through BIND_ENV
-
+	// Define flags for configuration file path and writing default config
+	configFile := pflag.StringP("config", "c", "", "Path to config file")
 	writeConfig := pflag.Bool("write-default-config", false, "Set to true to write default config file")
 	pflag.Parse()
+
+	// Check if write default config flag is set
 	if *writeConfig {
 		if err := viper.SafeWriteConfig(); err != nil {
 			if _, ok := err.(viper.ConfigFileAlreadyExistsError); ok {
@@ -78,22 +58,34 @@ func getConfig() (*picolytics.Config, []string, error) {
 		os.Exit(0)
 	}
 
-	// save warnings until logger is setup
-	warnings := []string{}
-	if err := viper.ReadInConfig(); err != nil {
-		warnings = append(warnings, fmt.Sprintf("config file error, using env vars and defaults: %s", err))
+	// Check if the config file is specified either via flag or environment variable
+	usingConfig := false
+	if *configFile != "" {
+		usingConfig = true
+		viper.SetConfigFile(*configFile)
+	} else if viper.GetString("configPath") != "" && viper.GetString("configName") != "" {
+		usingConfig = true
+		viper.SetConfigFile(viper.GetString("configPath") + "/" + viper.GetString("configName") + ".yaml")
+	} else {
+		log.Println("No configuration file specified, using defaults and any environment variables.")
 	}
 
-	// populate config from env vars here
+	// Read the configuration file
+	if usingConfig {
+		if err := viper.ReadInConfig(); err != nil {
+			return nil, nil, fmt.Errorf("failed to read config file: %v", err)
+		}
+	}
+
 	if err := viper.Unmarshal(&config); err != nil {
-		return nil, warnings, fmt.Errorf("unable to decode config file: %v", err)
+		return nil, nil, fmt.Errorf("unable to decode config file: %v", err)
 	}
 
-	// internal config
+	// Internal config
 	config.GitCommit = InjectedGitCommit
 	config.GitBranch = InjectedGitBranch
 	config.AppVersion = InjectedAppVersion
 	config.StaticFiles = staticFilesSource
 
-	return &config, warnings, nil
+	return &config, nil, nil
 }
