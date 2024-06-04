@@ -17,7 +17,7 @@ RUN case "${TARGETPLATFORM}" in \
     esac && \
     curl -L ${URL} | tar -xz -C /usr/local/bin sqlc
 
-RUN [ -f geoip.mmdb ] || (curl -L https://download.db-ip.com/free/dbip-city-lite-2024-04.mmdb.gz | gunzip -c > geoip.mmdb)
+RUN [ -f geoip.mmdb ] || (curl -L https://download.db-ip.com/free/dbip-city-lite-2024-06.mmdb.gz | gunzip -c > geoip.mmdb)
 
 COPY go.mod go.sum ./
 RUN go mod download
