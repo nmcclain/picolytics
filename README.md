@@ -11,7 +11,7 @@ Picolytics web analytics: self-hosted, privacy-first, with support for bare meta
 
 # Quickstart
 1. Clone this repo: `git clone https://github.com/nmcclain/picolytics.git`
-2. Use an insecure config for testing: `cp .env-sample .env`
+2. Use an insecure config for testing: `cd docker && cp .env-sample .env`
 2. Start Picolytics and Postgres: `docker compose up`
 3. Load the [etc/index.html](etc/index.html) file in your browser to create a sample visit.
 4. Visit the sample Grafana dashboard at: http://localhost:3000/d/picolytics-47a42be-8950-55eebc62a0e1/picolytics
@@ -85,6 +85,8 @@ Picolytics uses the [spf13/viper](https://github.com/spf13/viper) library and su
 | Environment Variable | Config File Key   | Description                     | Default |
 | -------------------- | ----------------- | ------------------------------- | ------- |
 | `PGCONNSTRING`       | `pgConnString`    | PostgreSQL connection string    | ""      |
+
+Example: `export PGCONNSTRING="postgres://USER:PASSWORD@HOST:PORT/DATABASE?sslmode=SSLMODE"`
 
 ### OR (useful with k8s Secrets)
 | Environment Variable | Config File Key   | Description                     | Default |
@@ -167,7 +169,7 @@ The default settings below perform well for up to 1000 requests/second.  You can
 | `CONFIG_NAME`          | `configName`          | config         | Config file name                            |
 | `CONFIG_PATH`          | `configPath`          | .              | Config file path                            |
 
-You can use a config file instead of environment variables. By default, picolytics looks for a config file at `./config.yaml`. You can override this with `CONFIG_NAME` and `CONFIG_PATH`.
+You can use a config file instead of environment variables. You must either use the `-c <configfile>` flag, or set `CONFIG_NAME` and `CONFIG_PATH` environment variables. Note that picolytics does not yet support hot config reloads.
 
 See the [sample config.yaml](config.yaml) or use the following command to write a default config.yaml file:
 ```

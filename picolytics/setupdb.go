@@ -39,8 +39,8 @@ func setupDB(config *Config, o11y *PicolyticsO11y) (*pgxpool.Pool, error) {
 	var conn *pgxpool.Conn
 	for attempt := 0; ; attempt++ {
 		conn, err = pool.Acquire(ctx)
-		defer conn.Release() // Make sure to release the connection when done
 		if err == nil {
+			conn.Release()
 			break
 		}
 		if attempt >= config.PgConnAttempts {
