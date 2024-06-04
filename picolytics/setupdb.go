@@ -40,7 +40,7 @@ func setupDB(config *Config, o11y *PicolyticsO11y) (*pgxpool.Pool, error) {
 	for attempt := 0; ; attempt++ {
 		conn, err = pool.Acquire(ctx)
 		if err == nil {
-			conn.Release()
+			defer conn.Release()
 			break
 		}
 		if attempt >= config.PgConnAttempts {
